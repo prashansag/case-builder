@@ -1,0 +1,11 @@
+flask
+requests
+beautifulsoup4
+python-pptx
+Pillow
+pypdf
+pymupdf
+rapidocr-onnxruntime
+groq
+pymupdf
+rapidocr-onnxruntime

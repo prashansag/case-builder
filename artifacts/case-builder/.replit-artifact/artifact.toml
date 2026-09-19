@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Case Builder"
+description = "A minimal Flask web app that turns an uploaded RFP into placeholder digest and draft data, then downloads a three-slide branded PPTX proposal."
+version = "1.0.0"
+id = "artifacts/case-builder"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25139
+
+[services.development]
+run = "python ../../app.py"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/case-builder", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/case-builder/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25139"
+BASE_PATH = "/"

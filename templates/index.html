@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Case Builder</title>
+    <style>
+      :root {
+        color: #172033;
+        background: #f3f0e9;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-synthesis: none;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; }
+      button, input, textarea, select { font: inherit; }
+      button { cursor: pointer; }
+      button:disabled { cursor: not-allowed; opacity: .45; }
+
+      .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 80px; }
+      .hero { display: grid; grid-template-columns: 1.3fr .7fr; gap: 28px; align-items: end; margin-bottom: 26px; }
+      .eyebrow { color: #b24e29; font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+      h1 { font-family: Georgia, serif; font-size: clamp(38px, 7vw, 72px); line-height: .95; margin: 10px 0 18px; letter-spacing: -.04em; }
+      .hero p { color: #5c6472; font-size: 17px; line-height: 1.6; max-width: 720px; margin: 0; }
+      .hero-note { border-left: 3px solid #d46a3a; padding-left: 18px; color: #5c6472; line-height: 1.55; }
+
+      .progress { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; margin: 28px 0 32px; }
+      .progress-item { background: #e5e0d7; border-radius: 6px; color: #747b85; font-size: 11px; min-height: 54px; padding: 10px 8px; transition: .2s ease; }
+      .progress-item strong { display: block; color: inherit; font-size: 12px; margin-bottom: 3px; }
+      .progress-item.active { background: #172033; color: #fff; transform: translateY(-2px); }
+      .progress-item.done { background: #d6e5d7; color: #285633; }
+
+      .stage { background: #fff; border: 1px solid #ddd7cc; border-radius: 14px; box-shadow: 0 10px 35px rgba(38, 44, 55, .05); margin: 18px 0; overflow: hidden; }
+      .stage-header { border-bottom: 1px solid #ece7df; display: flex; gap: 16px; align-items: flex-start; padding: 22px 26px; }
+      .stage-number { align-items: center; background: #172033; border-radius: 50%; color: #fff; display: flex; flex: 0 0 36px; font-weight: 800; height: 36px; justify-content: center; }
+      .stage-title h2 { font-family: Georgia, serif; font-size: 25px; margin: 0 0 5px; }
+      .stage-title p { color: #6a707b; line-height: 1.5; margin: 0; }
+      .checkpoint { background: #f4dfc8; border-radius: 999px; color: #87421f; font-size: 11px; font-weight: 800; margin-left: auto; padding: 7px 11px; text-transform: uppercase; white-space: nowrap; }
+      .stage-body { padding: 26px; }
+      .stage.locked .stage-body { display: none; }
+      .stage.locked .stage-header { opacity: .55; }
+
+      .grid { display: grid; gap: 18px; }
+      .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      label { color: #343b48; display: block; font-size: 13px; font-weight: 750; margin-bottom: 7px; }
+      input[type="text"], input[type="url"], textarea, select {
+        background: #fbfaf7; border: 1px solid #cbc5bb; border-radius: 8px; color: #172033; outline: none; padding: 11px 12px; width: 100%;
+      }
+      input:focus, textarea:focus, select:focus { border-color: #d46a3a; box-shadow: 0 0 0 3px rgba(212,106,58,.12); }
+      textarea { min-height: 100px; resize: vertical; }
+      .help { color: #737984; font-size: 12px; line-height: 1.45; margin: 7px 0 0; }
+
+      .upload-zone { background: #fbfaf7; border: 1px dashed #afa89c; border-radius: 10px; padding: 22px; }
+      .upload-zone input { margin: 12px 0; width: 100%; }
+      .actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+      .btn { background: #172033; border: 1px solid #172033; border-radius: 8px; color: #fff; font-weight: 750; padding: 11px 17px; }
+      .btn:hover:not(:disabled) { background: #29344b; transform: translateY(-1px); }
+      .btn.secondary { background: transparent; color: #172033; }
+      .btn.accent { background: #d46a3a; border-color: #d46a3a; }
+      .status { color: #656c78; font-size: 13px; min-height: 20px; }
+      .status.error { color: #b42318; }
+      .status.success { color: #2d6538; }
+      .evidence-note { background: #f4f1eb; border-left: 4px solid #d46a3a; border-radius: 7px; color: #5d6470; display: none; font-size: 12px; line-height: 1.55; margin: 18px 0; padding: 12px 15px; }
+      .evidence-note strong { color: #172033; }
+
+      pre { background: #141b2b; border-radius: 10px; color: #d7e0ef; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 360px; overflow: auto; padding: 18px; white-space: pre-wrap; }
+      .phase-list { display: grid; gap: 11px; margin-top: 16px; }
+      .phase { background: #f4f1eb; border-left: 4px solid #d46a3a; border-radius: 7px; display: grid; gap: 6px; grid-template-columns: 140px 120px 1fr; padding: 13px 15px; }
+      .phase b { color: #172033; }
+      .phase span { color: #6a707b; font-size: 13px; }
+
+      .brand-row { align-items: end; display: grid; gap: 16px; grid-template-columns: 1fr 110px 110px 110px; }
+      .color-control input { height: 44px; padding: 3px; width: 100%; }
+      .context-list { display: grid; gap: 10px; margin-top: 14px; }
+      .source-card { background: #f7f5f0; border-radius: 8px; padding: 13px 15px; }
+      .source-card strong { display: block; margin-bottom: 4px; }
+      .source-card a { color: #b24e29; font-size: 12px; }
+      .story-card { background: #172033; border-radius: 12px; color: #fff; padding: 24px; }
+      .story-card h3 { color: #e58a5d; font-family: Georgia, serif; font-size: 28px; margin: 0 0 14px; }
+      .story-card p { color: #d5dbea; line-height: 1.6; }
+      .confirmation { align-items: center; background: #edf4ec; border: 1px solid #bfd0bd; border-radius: 9px; display: flex; gap: 10px; margin-top: 18px; padding: 14px; }
+      .confirmation label { margin: 0; }
+
+      @media (max-width: 850px) {
+        .hero, .grid.two, .grid.three, .brand-row { grid-template-columns: 1fr; }
+        .progress { grid-template-columns: repeat(4, 1fr); }
+        .phase { grid-template-columns: 1fr; }
+        .checkpoint { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <h1>Case Builder</h1>
+          <p>A seven-stage proposal workflow grounded in six real winning-response patterns. You control the facts, enrichment, sources, storyline, and brand before anything renders.</p>
+        </div>
+        <div class="hero-note"><strong>Two human checkpoints.</strong><br />Nothing drafts before you confirm the RFP digest. Nothing renders before you sign off on the fused storyline.</div>
+      </header>
+
+      <nav id="progress" class="progress"></nav>
+
+      <section id="stage-1" class="stage">
+        <div class="stage-header">
+          <div class="stage-number">1</div>
+          <div class="stage-title"><h2>Digest the RFP</h2><p>Extract the client, forcing event, quantified boundary, scope, timeline, stakeholders, deliverables, vocabulary, and inferred pain points.</p></div>
+        </div>
+        <div class="stage-body">
+          <div class="upload-zone">
+            <label for="rfp-file">RFP file</label>
+            <input id="rfp-file" type="file" accept=".pdf,.pptx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain" />
+            <p class="help">PDF, PPTX, or TXT · maximum 20 MB. Files are processed in memory and not stored.</p>
+          </div>
+          <div class="actions">
+            <button id="digest-button" class="btn" type="button">Digest RFP</button>
+            <span id="digest-status" class="status"></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="stage-2" class="stage locked">
+        <div class="stage-header">
+          <div class="stage-number">2</div>
+          <div class="stage-title"><h2>Validate the facts</h2><p>Edit every extracted field. This confirmed JSON becomes the source of truth downstream.</p></div>
+          <span class="checkpoint">Checkpoint 1</span>
+        </div>
+        <div class="stage-body">
+          <div class="grid three">
+            <div><label for="client">Client / organisation with the problem</label><input id="client" type="text" /></div>
+            <div><label for="sector">Sector / client industry</label><input id="sector" type="text" /></div>
+            <div><label for="geography">Geography / markets in scope</label><input id="geography" type="text" /></div>
+          </div>
+          <div id="extraction-evidence" class="evidence-note"></div>
+          <div class="grid two" style="margin-top:18px">
+            <div><label for="forcing-event">Forcing event / why act now?</label><textarea id="forcing-event"></textarea></div>
+            <div><label for="case-objective">Case objective / intended change · required</label><textarea id="case-objective" required aria-describedby="objective-help"></textarea><p id="objective-help" class="help">Confirm the intended outcome. An objective is required before drafting.</p></div>
+            <div><label for="quantified-target">Quantified target</label><textarea id="quantified-target"></textarea><p class="help">Only an explicit measurable target from the source; left blank when none is stated.</p></div>
+            <div><label for="scope-in">Scope in · one item per line</label><textarea id="scope-in"></textarea></div>
+            <div><label for="scope-out">Scope out · one item per line</label><textarea id="scope-out"></textarea></div>
+            <div><label for="timeline">Timeline</label><textarea id="timeline"></textarea></div>
+            <div><label for="stakeholders">Stakeholders · one per line</label><textarea id="stakeholders"></textarea></div>
+            <div><label for="deliverables">Deliverables · one per line</label><textarea id="deliverables"></textarea></div>
+            <div><label for="jargon">Repeated terms / industry jargon · one per line</label><textarea id="jargon"></textarea></div>
+            <div><label for="pain-points">Pain points / problems / friction · edit freely</label><textarea id="pain-points"></textarea></div>
+          </div>
+          <div class="actions">
+            <button id="draft-button" class="btn accent" type="button">Confirm facts & draft solution</button>
+            <span id="draft-status" class="status"></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="stage-3" class="stage locked">
+        <div class="stage-header">
+          <div class="stage-number">3</div>
+          <div class="stage-title"><h2>First-draft solution</h2><p>One merged approach/solution with named phases, timing, client-owned output, evidence, and acknowledged risk.</p></div>
+        </div>
+        <div class="stage-body">
+          <div id="draft-summary"></div>
+          <details><summary>View draft JSON</summary><pre id="draft-json">{}</pre></details>
+        </div>
+      </section>
+
+      <section id="stage-4" class="stage locked">
+        <div class="stage-header">
+          <div class="stage-number">4</div>
+          <div class="stage-title"><h2>Add your angle</h2><p>Paste reference material, internal knowledge, or the raw instinct that should make this solution specific.</p></div>
+        </div>
+        <div class="stage-body">
+          <label for="enrichment">Enrichment notes</label>
+          <textarea id="enrichment" placeholder="Example: Lead with operating-model simplification, not cost reduction. The CFO cares most about a reusable model and speed to first result."></textarea>
+          <div class="actions">
+            <button id="enrich-button" class="btn" type="button">Apply enrichment</button>
+            <span id="enrich-status" class="status"></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="stage-5" class="stage locked">
+        <div class="stage-header">
+          <div class="stage-number">5</div>
+          <div class="stage-title"><h2>Add brand and positioning context</h2><p>Extract client brand and research context only from the URLs you provide.</p></div>
+        </div>
+        <div class="stage-body">
+          <h3>5a · Client brand</h3>
+          <div class="brand-row">
+            <div><label for="brand-url">Client site URL</label><input id="brand-url" type="url" placeholder="https://client.example.com" /></div>
+            <div class="color-control"><label for="primary-color">Primary</label><input id="primary-color" type="color" value="#172033" /></div>
+            <div class="color-control"><label for="secondary-color">Secondary</label><input id="secondary-color" type="color" value="#f5f2ea" /></div>
+            <div class="color-control"><label for="accent-color">Accent</label><input id="accent-color" type="color" value="#d46a3a" /></div>
+          </div>
+          <div class="grid two" style="margin-top:16px">
+            <div><label for="logo-file">Logo override</label><input id="logo-file" type="file" accept="image/png,image/jpeg,image/webp" /><p class="help">Optional. Used in the deck only; maximum 2 MB.</p></div>
+            <div><label for="palette-file">Palette JSON override</label><input id="palette-file" type="file" accept=".json,application/json" /><p class="help">Optional keys: primary, secondary, accent.</p></div>
+          </div>
+          <div class="actions">
+            <button id="brand-button" class="btn secondary" type="button">Detect brand</button>
+            <span id="brand-status" class="status"></span>
+          </div>
+
+          <h3 style="margin-top:32px">5b · Web research and positioning sources</h3>
+          <label for="context-urls">Research URLs · one per line</label>
+          <textarea id="context-urls" placeholder="https://client.example.com/about&#10;https://competitor.example.com/services&#10;https://market-report.example.com/relevant-page"></textarea>
+          <p class="help">Only your client site URL and the research URLs entered here are fetched. No automatic searches or additional sources. Leave both empty to skip web research.</p>
+          <div class="actions">
+            <button id="context-button" class="btn secondary" type="button">Research web context</button>
+            <span id="context-status" class="status"></span>
+          </div>
+          <div id="context-list" class="context-list"></div>
+          <div class="actions">
+            <button id="storyline-button" class="btn accent" type="button">Build fused storyline</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="stage-6" class="stage locked">
+        <div class="stage-header">
+          <div class="stage-number">6</div>
+          <div class="stage-title"><h2>Confirm the storyline</h2><p>Review the fused solution, evidence, positioning context, and quantified “why us” before rendering.</p></div>
+          <span class="checkpoint">Checkpoint 2</span>
+        </div>
+        <div class="stage-body">
+          <div id="story-card" class="story-card"></div>
+          <details><summary>View fused JSON</summary><pre id="story-json">{}</pre></details>
+          <div class="confirmation">
+            <input id="confirm-story" type="checkbox" />
+            <label for="confirm-story">I confirm this storyline and solution for rendering.</label>
+          </div>
+        </div>
+      </section>
+
+      <section id="stage-7" class="stage locked">
+        <div class="stage-header">
+          <div class="stage-number">7</div>
+          <div class="stage-title"><h2>Build the branded deck</h2><p>Render the confirmed content with the selected brand kit. Text and visual theme remain independent inputs.</p></div>
+        </div>
+        <div class="stage-body">
+          <button id="download-button" class="btn accent" type="button">Download proposal.pptx</button>
+          <span id="render-status" class="status"></span>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        digest: null,
+        draft: null,
+        brandKit: { primary: "#172033", secondary: "#f5f2ea", accent: "#d46a3a", logo_url: "", logo_data_url: "", tone: "", source: "manual" },
+        context: { sources: [] },
+        storyline: null,
+      };
+
+      const stageNames = ["Digest", "Validate", "Draft", "Enrich", "Context", "Confirm", "Render"];
+      let currentStage = 1;
+      const $ = (id) => document.getElementById(id);
+      const lines = (value) => (value || "").split("\n").map((item) => item.trim()).filter(Boolean);
+      const setStatus = (id, text, type = "") => { const el = $(id); el.textContent = text; el.className = `status ${type}`; };
+      const unlock = (number) => { $(`stage-${number}`).classList.remove("locked"); currentStage = Math.max(currentStage, number); renderProgress(); };
+
+      function renderProgress() {
+        $("progress").innerHTML = stageNames.map((name, index) => {
+          const stageNumber = index + 1;
+          const cls = stageNumber < currentStage ? "done" : stageNumber === currentStage ? "active" : "";
+          return `<div class="progress-item ${cls}"><strong>${stageNumber}</strong>${name}</div>`;
+        }).join("");
+      }
+
+      async function apiJson(url, options = {}) {
+        const response = await fetch(url, options);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+        return data;
+      }
+
+      function populateDigest(data) {
+        $("client").value = data.client || "";
+        $("sector").value = data.sector || "";
+        $("geography").value = data.geography || "";
+        $("forcing-event").value = data.forcing_event || "";
+        $("case-objective").value = data.case_objective || "";
+        $("objective-help").textContent = data.objective_status === "proposed"
+          ? "Proposed from the stated problem, not an explicit objective. Edit it to describe the intended outcome, then confirm."
+          : data.case_objective
+            ? "Review and confirm this intended outcome before drafting."
+            : "No objective could be reliably extracted. Enter the intended outcome to continue; this field is required.";
+        $("quantified-target").value = data.quantified_target || "";
+        $("scope-in").value = (data.scope_in || []).join("\n");
+        $("scope-out").value = (data.scope_out || []).join("\n");
+        $("timeline").value = data.timeline || "";
+        $("stakeholders").value = (data.stakeholders || []).join("\n");
+        $("deliverables").value = (data.deliverables || []).join("\n");
+        $("jargon").value = (data.jargon_terms || []).join("\n");
+        $("pain-points").value = (data.pain_points || []).join("\n");
+        const evidence = [
+          data.interpretation_source ? [`Interpretation: ${data.interpretation_source}`] : [],
+          data.interpretation_model ? [`Model: ${data.interpretation_model}`] : [],
+          data.interpretation_request_id ? [`Groq request: ${data.interpretation_request_id}`] : [],
+          ...(data.client_evidence || []),
+          ...(data.sector_evidence || []).length ? [`Industry signals: ${(data.sector_evidence || []).join(", ")}`] : [],
+          ...(data.geography_evidence || []).length ? [`Geography signals: ${(data.geography_evidence || []).join(", ")}`] : [],
+        ].flat();
+        $("extraction-evidence").style.display = evidence.length ? "block" : "none";
+        $("extraction-evidence").innerHTML = evidence.length
+          ? `<strong>Why these fields were inferred</strong><br>${evidence.join("<br>")}`
+          : "";
+      }
+
+      function collectDigest() {
+        return {
+          ...state.digest,
+          client: $("client").value.trim(),
+          sector: $("sector").value.trim(),
+          geography: $("geography").value.trim(),
+          forcing_event: $("forcing-event").value.trim(),
+          case_objective: $("case-objective").value.trim(),
+          quantified_target: $("quantified-target").value.trim(),
+          scope_in: lines($("scope-in").value),
+          scope_out: lines($("scope-out").value),
+          timeline: $("timeline").value.trim(),
+          stakeholders: lines($("stakeholders").value),
+          deliverables: lines($("deliverables").value),
+          jargon_terms: lines($("jargon").value),
+          pain_points: lines($("pain-points").value),
+          pain_points_inferred: true,
+        };
+      }
+
+      function renderDraft() {
+        const phases = state.draft.approach_phases || [];
+        $("draft-summary").innerHTML = `
+          <h3>${state.draft.quantified_headline}</h3>
+          <p><strong>Objective:</strong> ${state.draft.case_objective || "Not explicitly stated"}</p>
+          <p><strong>Problem:</strong> ${state.draft.problem_statement}</p>
+          <p><strong>Why now:</strong> ${state.draft.why_now || "No explicit forcing event stated"}</p>
+          <p><strong>Key pain points:</strong> ${(state.draft.pain_points || []).join("; ")}</p>
+          <div class="phase-list">${phases.map((phase) => `<div class="phase"><b>${phase.name}</b><span>${phase.duration}</span><span>${phase.goal}</span></div>`).join("")}</div>
+          <p><strong>Client-owned output:</strong> ${state.draft.handed_over_artifact}</p>
+          <p><strong>Risk acknowledged:</strong> ${state.draft.risk_note}</p>`;
+        $("draft-json").textContent = JSON.stringify(state.draft, null, 2);
+      }
+
+      function renderContext() {
+        $("context-list").innerHTML = (state.context.sources || []).map((source) => source.status === "fetched"
+          ? `<div class="source-card"><strong>${source.title}</strong><div>${source.source_type || "source"} · ${source.description || source.excerpt.slice(0, 180)}</div><a href="${source.url}" target="_blank" rel="noreferrer">${source.url}</a></div>`
+          : `<div class="source-card"><strong>Could not fetch</strong><div>${source.error}</div><a href="${source.url}" target="_blank" rel="noreferrer">${source.url}</a></div>`
+        ).join("");
+      }
+
+      function renderStoryline() {
+        const story = state.storyline;
+        const phases = story.approach_phases || [];
+        const insights = story.market_insights || [];
+        $("story-card").innerHTML = `
+          <h3>${story.headline}</h3>
+          <p><strong>Objective:</strong> ${story.case_objective || "Not explicitly stated"}</p>
+          <p><strong>Why act now:</strong> ${story.why_now || "No explicit forcing event stated in the source"}</p>
+          <p><strong>Problem:</strong> ${story.problem_statement}</p>
+          <p><strong>Key pain points:</strong> ${(story.pain_points || []).join("; ")}</p>
+          <p><strong>Our solution:</strong> ${story.solution_summary}</p>
+          <p><strong>Your angle:</strong> ${story.client_angle || "No additional angle supplied"}</p>
+          <div class="phase-list">${phases.map((phase) => `<div class="phase"><b>${phase.name}</b><span>${phase.duration || ""}</span><span>${phase.goal}</span></div>`).join("")}</div>
+          <p><strong>Why us:</strong> ${story.why_us}</p>
+          <p><strong>Web research:</strong> ${insights.length ? insights.map((item) => item.insight || item).join("; ") : "No external insight available"}</p>
+          <p><strong>Client-owned output:</strong> ${story.handed_over_artifact}</p>
+          <p><strong>Risk:</strong> ${story.risk_note}</p>`;
+        $("story-json").textContent = JSON.stringify(story, null, 2);
+      }
+
+      $("digest-button").addEventListener("click", async () => {
+        const file = $("rfp-file").files[0];
+        if (!file) return setStatus("digest-status", "Choose a PDF, PPTX, or TXT file first.", "error");
+        const formData = new FormData();
+        formData.append("rfp_file", file);
+        $("digest-button").disabled = true;
+        setStatus("digest-status", "Extracting RFP structure…");
+        try {
+          state.digest = await apiJson("/api/digest", { method: "POST", body: formData });
+          populateDigest(state.digest);
+          unlock(2);
+          const visualNote = state.digest.client_inferred_from_visual_evidence
+            ? " Client and sector were inferred from visual logo evidence."
+            : "";
+          const interpretationNote = state.digest.interpretation_source?.startsWith("Groq")
+            ? " Groq structured interpretation applied."
+            : " Deterministic interpretation used.";
+          setStatus("digest-status", `Digest ready from ${state.digest.source_character_count.toLocaleString()} readable characters.${interpretationNote}${visualNote}`, "success");
+          $("stage-2").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (error) {
+          setStatus("digest-status", error.message, "error");
+        } finally {
+          $("digest-button").disabled = false;
+        }
+      });
+
+      $("draft-button").addEventListener("click", async () => {
+        state.digest = collectDigest();
+        if (!state.digest.case_objective) {
+          $("case-objective").focus();
+          return setStatus("draft-status", "Enter and confirm the case objective before drafting.", "error");
+        }
+        $("draft-button").disabled = true;
+        setStatus("draft-status", "Matching the confirmed facts to the strongest internal proposal pattern…");
+        try {
+          state.draft = await apiJson("/api/draft", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ digest: state.digest }),
+          });
+          renderDraft();
+          unlock(3); unlock(4); unlock(5);
+          setStatus("draft-status", "Confirmed facts locked into the first draft.", "success");
+          $("stage-3").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (error) {
+          setStatus("draft-status", error.message, "error");
+        } finally {
+          $("draft-button").disabled = false;
+        }
+      });
+
+      $("enrich-button").addEventListener("click", async () => {
+        setStatus("enrich-status", "Applying your angle…");
+        try {
+          state.draft = await apiJson("/api/enrich", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ draft: state.draft, enrichment: $("enrichment").value }),
+          });
+          renderDraft();
+          setStatus("enrich-status", "Enrichment applied to the working solution.", "success");
+        } catch (error) {
+          setStatus("enrich-status", error.message, "error");
+        }
+      });
+
+      $("brand-button").addEventListener("click", async () => {
+        setStatus("brand-status", "Detecting brand signals…");
+        try {
+          const detected = await apiJson("/api/brand", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: $("brand-url").value }),
+          });
+          state.brandKit = { ...state.brandKit, ...detected };
+          $("primary-color").value = state.brandKit.primary;
+          $("secondary-color").value = state.brandKit.secondary;
+          $("accent-color").value = state.brandKit.accent;
+          setStatus("brand-status", detected.warning || `Brand defaults loaded from ${detected.source}.`, detected.warning ? "" : "success");
+        } catch (error) {
+          setStatus("brand-status", error.message, "error");
+        }
+      });
+
+      ["primary-color", "secondary-color", "accent-color"].forEach((id) => $(id).addEventListener("input", () => {
+        state.brandKit[id.replace("-color", "")] = $(id).value;
+        state.brandKit.source = "manual override";
+      }));
+
+      $("logo-file").addEventListener("change", () => {
+        const file = $("logo-file").files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) return setStatus("brand-status", "Logo must be 2 MB or smaller.", "error");
+        const reader = new FileReader();
+        reader.onload = () => { state.brandKit.logo_data_url = reader.result; setStatus("brand-status", "Logo override loaded.", "success"); };
+        reader.readAsDataURL(file);
+      });
+
+      $("palette-file").addEventListener("change", async () => {
+        const file = $("palette-file").files[0];
+        if (!file) return;
+        try {
+          const palette = JSON.parse(await file.text());
+          ["primary", "secondary", "accent"].forEach((key) => {
+            if (/^#[0-9a-f]{6}$/i.test(palette[key] || "")) {
+              state.brandKit[key] = palette[key];
+              $(`${key}-color`).value = palette[key];
+            }
+          });
+          state.brandKit.source = "palette JSON override";
+          setStatus("brand-status", "Palette override loaded.", "success");
+        } catch {
+          setStatus("brand-status", "Palette file must be valid JSON with hex colors.", "error");
+        }
+      });
+
+      ["brand-url", "context-urls"].forEach((id) => {
+        $(id).addEventListener("input", () => {
+          state.context = { sources: [] };
+          renderContext();
+        });
+      });
+
+      $("context-button").addEventListener("click", async () => {
+        const urls = lines($("context-urls").value);
+        setStatus("context-status", "Fetching only your supplied URLs…");
+        try {
+          state.context = await apiJson("/api/context", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ urls, digest: state.digest, brand_url: $("brand-url").value }),
+          });
+          renderContext();
+          const successCount = state.context.sources.filter((source) => source.status === "fetched").length;
+          setStatus("context-status", `${successCount} source(s) researched and fetched.`, "success");
+        } catch (error) {
+          setStatus("context-status", error.message, "error");
+        }
+      });
+
+      $("storyline-button").addEventListener("click", async () => {
+        try {
+          if (!(state.context.sources || []).some((source) => source.status === "fetched")) {
+            setStatus("context-status", "Fetching your supplied URLs before building the storyline…");
+            state.context = await apiJson("/api/context", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                urls: lines($("context-urls").value),
+                digest: state.digest,
+                brand_url: $("brand-url").value,
+              }),
+            });
+            renderContext();
+          }
+          state.storyline = await apiJson("/api/storyline", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ digest: state.digest, draft: state.draft, context: state.context, brand_kit: state.brandKit }),
+          });
+          renderStoryline();
+          unlock(6);
+          $("stage-6").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (error) {
+          setStatus("context-status", error.message, "error");
+        }
+      });
+
+      $("confirm-story").addEventListener("change", () => {
+        if ($("confirm-story").checked) {
+          state.storyline.confirmation_status = "confirmed";
+          unlock(7);
+          $("stage-7").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          state.storyline.confirmation_status = "awaiting_confirmation";
+          $("stage-7").classList.add("locked");
+        }
+      });
+
+      $("download-button").addEventListener("click", async () => {
+        $("download-button").disabled = true;
+        setStatus("render-status", "Rendering confirmed content and brand kit…");
+        state.brandKit.primary = $("primary-color").value;
+        state.brandKit.secondary = $("secondary-color").value;
+        state.brandKit.accent = $("accent-color").value;
+        try {
+          const response = await fetch("/api/render", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ digest: state.digest, draft: state.draft, storyline: state.storyline, brand_kit: state.brandKit }),
+          });
+          if (!response.ok) throw new Error("Deck rendering failed.");
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url; link.download = "proposal.pptx"; link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          setStatus("render-status", `proposal.pptx downloaded (${Math.round(blob.size / 1024)} KB).`, "success");
+        } catch (error) {
+          setStatus("render-status", error.message, "error");
+        } finally {
+          $("download-button").disabled = false;
+        }
+      });
+
+      (async function init() {
+        renderProgress();
+      })();
+    </script>
+  </body>
+</html>
